@@ -43,3 +43,5 @@ export default function Home() {
     </div>
   );
 }
+Fix broken frontend layout
+
