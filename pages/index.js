@@ -3,62 +3,59 @@ import { useState } from 'react';
 export default function Home() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const sendMessage = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     if (!input.trim()) return;
 
     const userMessage = { role: 'user', content: input };
-    setMessages([...messages, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInput('');
+    setLoading(true);
 
     try {
       const res = await fetch('/api/ask', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ prompt: input }),
       });
 
       const data = await res.json();
-
-      const botMessage = {
+      const aiMessage = {
         role: 'assistant',
         content: data.message || '⚠️ No response from AI',
       };
-
-      setMessages((prev) => [...prev, botMessage]);
+      setMessages([...newMessages, aiMessage]);
     } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: '❌ Server error. Try again later.' },
-      ]);
-      console.error('Error:', err);
+      setMessages([...newMessages, { role: 'assistant', content: '❌ Error contacting AI.' }]);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial' }}>
+    <div style={{ padding: 20 }}>
       <h1>Smart AI Setup Wizard</h1>
-
-      <div style={{ marginBottom: '10px' }}>
-        {messages.map((msg, i) => (
-          <p key={i}>
-            <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}
-          </p>
-        ))}
-      </div>
-
-      <input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Ask something..."
-        style={{ width: '80%', padding: '10px', fontSize: '16px' }}
-      />
-      <button
-        onClick={sendMessage}
-        style={{ padding: '10px', fontSize: '16px', marginLeft: '5px' }}
-      >
-        Send
-      </button>
+      {messages.map((msg, i) => (
+        <p key={i}>
+          <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}
+        </p>
+      ))}
+      <form onSubmit={handleSubmit}>
+        <input
+          style={{ width: '80%', marginRight: 10 }}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask something..."
+        />
+        <button type="submit" disabled={loading}>
+          {loading ? 'Thinking...' : 'Send'}
+        </button>
+      </form>
     </div>
   );
 }
