@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { useState } from 'react';
+
 export default function Home() {
   const [input, setInput] = useState('');
   const [chat, setChat] = useState([]);
