@@ -1,65 +1,55 @@
 import { useState } from 'react';
 
 export default function Home() {
-  const [messages, setMessages] = useState([{ role: 'system', content: 'Welcome to Smart AI Wizard.' }]);
   const [input, setInput] = useState('');
-  const [streaming, setStreaming] = useState(false);
+  const [chat, setChat] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const userMessage = { role: 'user', content: input };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+
+    const newChat = [...chat, { role: 'user', content: input }];
+    setChat(newChat);
     setInput('');
-    setStreaming(true);
+    setLoading(true);
 
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      body: JSON.stringify({ messages: newMessages }),
-      headers: { 'Content-Type': 'application/json' },
-    });
+    try {
+      const response = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newChat })
+      });
 
-    if (!res.ok) {
-      alert('Error from OpenAI');
-      setStreaming(false);
-      return;
+      const data = await response.json();
+      setChat([...newChat, { role: 'assistant', content: data.reply }]);
+    } catch (error) {
+      setChat([...newChat, { role: 'assistant', content: '⚠️ Error from OpenAI.' }]);
+    } finally {
+      setLoading(false);
     }
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let final = '';
-    let done = false;
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      const chunk = decoder.decode(value);
-      final += chunk;
-      setMessages([...newMessages, { role: 'assistant', content: final }]);
-    }
-
-    setStreaming(false);
   };
 
   return (
-    <main style={{ padding: 20, fontFamily: 'sans-serif' }}>
-      <h1>🧠 Smart AI Setup Wizard</h1>
-      <div style={{ marginTop: 20, marginBottom: 10 }}>
-        {messages.map((m, i) => (
-          <div key={i}><strong>{m.role}:</strong> {m.content}</div>
+    <div style={{ padding: 20 }}>
+      <h1>Smart AI Setup Wizard</h1>
+      <div style={{ marginBottom: 10 }}>
+        {chat.map((msg, index) => (
+          <div key={index}>
+            <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}
+          </div>
         ))}
       </div>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask something..."
-          style={{ padding: 10, width: '60%' }}
-        />
-        <button type="submit" style={{ padding: 10 }} disabled={streaming}>
-          {streaming ? '...Thinking' : 'Send'}
-        </button>
-      </form>
-    </main>
+      <input
+        type="text"
+        value={input}
+        placeholder="Ask something..."
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+        style={{ padding: 10, width: '80%' }}
+      />
+      <button onClick={sendMessage} disabled={loading} style={{ padding: 10, marginLeft: 5 }}>
+        {loading ? 'Thinking...' : 'Send'}
+      </button>
+    </div>
   );
 }
