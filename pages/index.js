@@ -1,61 +1,45 @@
 import { useState } from 'react';
 
 export default function Home() {
-  const [messages, setMessages] = useState([]);
+  const [chat, setChat] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSend = async () => {
     if (!input.trim()) return;
-
-    const userMessage = { role: 'user', content: input };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    setInput('');
     setLoading(true);
-
+    setChat([...chat, { role: 'user', content: input }]);
     try {
       const res = await fetch('/api/ask', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt: input }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: input })
       });
-
       const data = await res.json();
-      const aiMessage = {
-        role: 'assistant',
-        content: data.message || '⚠️ No response from AI',
-      };
-      setMessages([...newMessages, aiMessage]);
+      setChat((prev) => [...prev, { role: 'assistant', content: data.message }]);
     } catch (err) {
-      setMessages([...newMessages, { role: 'assistant', content: '❌ Error contacting AI.' }]);
+      setChat((prev) => [...prev, { role: 'assistant', content: '⚠️ Error: ' + err.message }]);
     } finally {
       setLoading(false);
+      setInput('');
     }
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Smart AI Setup Wizard</h1>
-      {messages.map((msg, i) => (
-        <p key={i}>
-          <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}
-        </p>
+    <div style={{ padding: 30, fontFamily: 'Arial' }}>
+      <h2>Smart AI Setup Wizard</h2>
+      {chat.map((msg, i) => (
+        <p key={i}><strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}</p>
       ))}
-      <form onSubmit={handleSubmit}>
-        <input
-          style={{ width: '80%', marginRight: 10 }}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask something..."
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Thinking...' : 'Send'}
-        </button>
-      </form>
+      <input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Ask something..."
+        style={{ width: '80%', padding: 10 }}
+      />
+      <button onClick={handleSend} disabled={loading} style={{ padding: '10px 20px' }}>
+        {loading ? 'Thinking...' : 'Send'}
+      </button>
     </div>
   );
 }
