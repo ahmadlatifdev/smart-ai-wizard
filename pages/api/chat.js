@@ -1,38 +1,33 @@
+import { OpenAI } from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-
-  const { messages } = req.body;
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages,
-      stream: true,
-    }),
-  });
-
-  if (!response.ok) {
-    return res.status(500).send('Error communicating with OpenAI');
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  res.writeHead(200, {
-    'Content-Type': 'text/plain',
-    'Transfer-Encoding': 'chunked',
-  });
+  const { message } = req.body;
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    res.write(decoder.decode(value));
+  if (!message || typeof message !== "string") {
+    return res.status(400).json({ error: "Invalid request" });
   }
 
-  res.end();
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4", // Or "gpt-3.5-turbo" if that’s your tier
+      messages: [
+        { role: "system", content: "You are Smart AI Wizard. Be helpful and creative." },
+        { role: "user", content: message },
+      ],
+    });
+
+    const reply = completion.choices[0].message.content.trim();
+    res.status(200).json({ response: reply });
+  } catch (error) {
+    console.error("OpenAI error:", error.message);
+    res.status(500).json({ error: "AI failed to respond" });
+  }
 }
