@@ -1,35 +1,42 @@
 import { useState } from 'react';
 
 export default function Home() {
-  const [chat, setChat] = useState([]);
   const [input, setInput] = useState('');
+  const [chat, setChat] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const handleSend = async () => {
     if (!input.trim()) return;
+    const newMessage = { role: 'user', content: input };
+    setChat((prev) => [...prev, newMessage]);
+    setInput('');
     setLoading(true);
-    setChat([...chat, { role: 'user', content: input }]);
+
     try {
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: input })
+        body: JSON.stringify({ prompt: input }),
       });
+
       const data = await res.json();
-      setChat((prev) => [...prev, { role: 'assistant', content: data.message }]);
+      if (data.message) {
+        setChat((prev) => [...prev, { role: 'assistant', content: data.message }]);
+      } else {
+        setChat((prev) => [...prev, { role: 'assistant', content: 'Error: No response' }]);
+      }
     } catch (err) {
-      setChat((prev) => [...prev, { role: 'assistant', content: '⚠️ Error: ' + err.message }]);
+      setChat((prev) => [...prev, { role: 'assistant', content: '⚠️ Error fetching reply' }]);
     } finally {
       setLoading(false);
-      setInput('');
     }
   };
 
   return (
-    <div style={{ padding: 30, fontFamily: 'Arial' }}>
-      <h2>Smart AI Setup Wizard</h2>
+    <div style={{ padding: 20 }}>
+      <h1>Smart AI Setup Wizard</h1>
       {chat.map((msg, i) => (
-        <p key={i}><strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}</p>
+        <div key={i}><strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}</div>
       ))}
       <input
         value={input}
@@ -43,5 +50,3 @@ export default function Home() {
     </div>
   );
 }
-Fix broken frontend layout
-
