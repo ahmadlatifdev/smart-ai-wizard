@@ -1,40 +1,70 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Only POST requests allowed' });
-  }
+import { useState } from 'react';
 
-  const { prompt } = req.body;
-  if (!prompt) {
-    return res.status(400).json({ error: 'Missing prompt' });
-  }
+export default function Home() {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  try {
-    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
+  const sendMessage = async () => {
+    if (!input.trim()) return;
 
-    const result = await openaiRes.json();
+    const userMessage = { role: 'user', content: input };
+    setMessages([...messages, userMessage]);
+    setInput('');
+    setLoading(true);
 
-    console.log('🔁 OpenAI raw response:', result);
-
-    if (result?.choices?.[0]?.message?.content) {
-      return res.status(200).json({ message: result.choices[0].message.content });
-    } else {
-      return res.status(500).json({
-        error: 'OpenAI returned an invalid response',
-        detail: result,
+    try {
+      const res = await fetch('/api/ask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt: input }),
       });
+
+      const data = await res.json();
+
+      const botMessage = {
+        role: 'assistant',
+        content: data.message || '⚠️ No response from AI.',
+      };
+
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (err) {
+      console.error('❌ Frontend fetch error:', err);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: '❌ Error connecting to AI.' },
+      ]);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('❌ Server Error:', err);
-    return res.status(500).json({ error: 'Server error', detail: err.message });
-  }
+  };
+
+  return (
+    <div style={{ padding: 20, fontFamily: 'Arial' }}>
+      <h1>Smart AI Setup Wizard</h1>
+
+      <div style={{ marginBottom: 20 }}>
+        {messages.map((msg, i) => (
+          <p key={i}>
+            <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}
+          </p>
+        ))}
+        {loading && <p><strong>AI:</strong> ⏳ Thinking...</p>}
+      </div>
+
+      <input
+        type="text"
+        value={input}
+        placeholder="Ask something..."
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+        style={{ width: '80%', padding: 10 }}
+      />
+      <button onClick={sendMessage} style={{ padding: 10, marginLeft: 10 }}>
+        Send
+      </button>
+    </div>
+  );
 }
