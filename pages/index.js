@@ -1,3 +1,4 @@
+// ✅ index.js – DeepSeek-Fixed Smart AI Wizard Interface
 import React, { useState } from 'react';
 
 export default function Home() {
@@ -8,7 +9,7 @@ export default function Home() {
   const handleSend = async () => {
     if (!input.trim()) return;
     const newMessage = { role: 'user', content: input };
-    setChat(prev => [...prev, newMessage]);
+    setChat((prev) => [...prev, newMessage]);
     setInput('');
     setLoading(true);
 
@@ -16,12 +17,12 @@ export default function Home() {
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...chat, newMessage] }),
+        body: JSON.stringify({ question: input }),
       });
       const data = await res.json();
-      setChat(prev => [...prev, { role: 'assistant', content: data.answer }]);
+      setChat((prev) => [...prev, { role: 'assistant', content: data.answer }]);
     } catch (err) {
-      console.error('Error:', err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -31,9 +32,7 @@ export default function Home() {
     <div style={{ padding: 20 }}>
       <h1>Smart AI Setup Wizard</h1>
       {chat.map((msg, i) => (
-        <div key={i}>
-          <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}
-        </div>
+        <div key={i}><strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}</div>
       ))}
       <input
         value={input}
