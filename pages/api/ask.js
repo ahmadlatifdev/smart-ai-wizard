@@ -1,4 +1,4 @@
-// pages/api/ask.js
+// File: pages/api/ask.js
 
 import { NextResponse } from 'next/server';
 import { withErrorHandling } from '@/utils/withErrorHandling';
@@ -13,9 +13,8 @@ const handler = async (req) => {
     );
   }
 
-  // Your AI processing logic here...
-
-  return NextResponse.json({ reply: "This is a DeepSeek-powered reply." });
+  // You can now handle OpenAI logic here (placeholder below)
+  return NextResponse.json({ reply: "DeepSeek-powered response goes here." });
 };
 
 export const POST = withErrorHandling(handler);
