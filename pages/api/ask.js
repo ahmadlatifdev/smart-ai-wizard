@@ -1,46 +1,50 @@
-// pages/api/ask.js
-export default async function handler(req, res) {
+// DeepSeek-Powered API Handler for Smart AI Builder
+
+import { NextResponse } from 'next/server'
+
+export async function POST(req) {
   try {
-    if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method Not Allowed' });
+    const { messages } = await req.json()
+
+    if (!messages || !Array.isArray(messages)) {
+      return NextResponse.json(
+        { error: 'Invalid request: messages must be an array.' },
+        { status: 400 }
+      )
     }
 
-    const { prompt } = req.body;
-
-    if (!prompt || prompt.trim() === '') {
-      return res.status(400).json({ error: 'Prompt is required' });
+    const systemPrompt = {
+      role: 'system',
+      content: `You are Smart AI Builder powered by DeepSeek, an advanced code and logic generation model.
+- Provide complete answers
+- Support real-time AI development, debugging, and enhancement
+- Explain reasoning clearly if asked`
     }
 
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-    if (!OPENAI_API_KEY) {
-      return res.status(500).json({ error: 'OpenAI API key not configured' });
-    }
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: "gpt-4", // Use "gpt-3.5-turbo" if you don’t have GPT-4 access
-        messages: [{ role: "user", content: prompt }],
+        model: 'gpt-4o',
+        messages: [systemPrompt, ...messages],
         temperature: 0.7,
-        max_tokens: 1000
+        stream: false
       })
-    });
+    })
+
+    const data = await response.json()
 
     if (!response.ok) {
-      const err = await response.json();
-      return res.status(500).json({ error: err.error.message || 'API Error' });
+      console.error('API Error:', data)
+      return NextResponse.json({ error: data.error?.message || 'API Error' }, { status: 500 })
     }
 
-    const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content?.trim();
-
-    return res.status(200).json({ reply });
-
-  } catch (error) {
-    return res.status(500).json({ error: 'Server Error', detail: error.message });
+    return NextResponse.json(data)
+  } catch (err) {
+    console.error('Internal Server Error:', err)
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
