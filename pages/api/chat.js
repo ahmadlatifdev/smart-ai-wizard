@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.DEESEEK_API_KEY}`,
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({ reply });
   } catch (error) {
-    console.error('DeepSeek API error:', error);
-    res.status(500).json({ error: 'DeepSeek request failed' });
+    console.error('DeepSeek error:', error);
+    res.status(500).json({ error: 'Failed to fetch from DeepSeek' });
   }
 }
